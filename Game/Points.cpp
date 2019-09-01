@@ -923,9 +923,7 @@ void Points::UploadAttributes(
 
     renderContext.UploadShipPointMutableAttributes(
         shipId,
-        mPositionBuffer.data(),
-        mLightBuffer.data(),
-        mWaterBuffer.data());
+        reinterpret_cast<void *>(mMutableAttributesBuffer.get()));
 
     if (mIsPlaneIdBufferNonEphemeralDirty)
     {

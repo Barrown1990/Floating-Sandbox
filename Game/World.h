@@ -47,6 +47,8 @@ public:
 
     size_t GetShipPointCount(ShipId shipId) const;
 
+    size_t GetShipPointBufferElementCount(ShipId shipId) const;
+
     inline float GetOceanSurfaceHeightAt(float x) const
     {
         return mOceanSurface.GetHeightAt(x);

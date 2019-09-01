@@ -356,11 +356,21 @@ public:
         //////////////////////////////////
         // Buffers
         //////////////////////////////////
+        , mMutableAttributesBufferByteSize(
+            Buffer<vec2f>::CalculateByteSize(mBufferElementCount) // Position
+            + Buffer<float>::CalculateByteSize(mBufferElementCount) // Water
+            + Buffer<float>::CalculateByteSize(mBufferElementCount)) // Light
+        , mMutableAttributesBuffer(
+            make_shared_buffer_aligned_to_vectorization_word(
+                mMutableAttributesBufferByteSize))
         // Materials
         , mMaterialsBuffer(mBufferElementCount, shipPointCount, Materials(nullptr, nullptr))
         , mIsRopeBuffer(mBufferElementCount, shipPointCount, false)
         // Mechanical dynamics
-        , mPositionBuffer(mBufferElementCount, shipPointCount, vec2f::zero())
+        , mPositionBuffer( // Segment
+            mMutableAttributesBuffer,
+            0u,
+            mBufferElementCount, shipPointCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, shipPointCount, vec2f::zero())
         , mForceBuffer(mBufferElementCount, shipPointCount, vec2f::zero())
         , mAugmentedMaterialMassBuffer(mBufferElementCount, shipPointCount, 1.0f)
@@ -376,7 +386,10 @@ public:
         , mMaterialWaterIntakeBuffer(mBufferElementCount, shipPointCount, 0.0f)
         , mMaterialWaterRestitutionBuffer(mBufferElementCount, shipPointCount, 0.0f)
         , mMaterialWaterDiffusionSpeedBuffer(mBufferElementCount, shipPointCount, 0.0f)
-        , mWaterBuffer(mBufferElementCount, shipPointCount, 0.0f)
+        , mWaterBuffer( // Segment
+            mMutableAttributesBuffer,
+            Buffer<vec2f>::CalculateByteSize(mBufferElementCount), // Position
+            mBufferElementCount, shipPointCount, 0.0f)
         , mWaterVelocityBuffer(mBufferElementCount, shipPointCount, vec2f::zero())
         , mWaterMomentumBuffer(mBufferElementCount, shipPointCount, vec2f::zero())
         , mCumulatedIntakenWater(mBufferElementCount, shipPointCount, 0.0f)
@@ -389,7 +402,11 @@ public:
         , mCombustionStateBuffer(mBufferElementCount, shipPointCount, CombustionState())
         // Electrical dynamics
         , mElectricalElementBuffer(mBufferElementCount, shipPointCount, NoneElementIndex)
-        , mLightBuffer(mBufferElementCount, shipPointCount, 0.0f)
+        , mLightBuffer( // Segment
+            mMutableAttributesBuffer,
+            Buffer<vec2f>::CalculateByteSize(mBufferElementCount) // Position
+            + Buffer<float>::CalculateByteSize(mBufferElementCount), // Water
+            mBufferElementCount, shipPointCount, 0.0f)
         // Wind dynamics
         , mMaterialWindReceptivityBuffer(mBufferElementCount, shipPointCount, 0.0f)
         // Rust dynamics
@@ -1330,6 +1347,11 @@ private:
     // Buffers
     //////////////////////////////////////////////////////////
 
+    // The single buffer whose segments are used for the mutable
+    // attributes' buffers
+    size_t const mMutableAttributesBufferByteSize;
+    shared_aligned_buffer mMutableAttributesBuffer;
+
     // Materials
     Buffer<Materials> mMaterialsBuffer;
     Buffer<bool> mIsRopeBuffer;
@@ -1338,7 +1360,7 @@ private:
     // Dynamics
     //
 
-    Buffer<vec2f> mPositionBuffer;
+    BufferSegment<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
     Buffer<vec2f> mForceBuffer;
     Buffer<float> mAugmentedMaterialMassBuffer; // Structural + Offset
@@ -1362,7 +1384,7 @@ private:
 
     // Height of a 1m2 column of water which provides a pressure equivalent to the pressure at
     // this point. Quantity of water is max(water, 1.0)
-    Buffer<float> mWaterBuffer;
+    BufferSegment<float> mWaterBuffer;
 
     // Total velocity of the water at this point
     Buffer<vec2f> mWaterVelocityBuffer;
@@ -1395,7 +1417,7 @@ private:
     Buffer<ElementIndex> mElectricalElementBuffer;
 
     // Total illumination, 0.0->1.0
-    Buffer<float> mLightBuffer;
+    BufferSegment<float> mLightBuffer;
 
     //
     // Wind dynamics
@@ -1470,10 +1492,14 @@ private:
     // Count of ephemeral points
     ElementCount const mEphemeralPointCount;
 
-    // Count of all points (sum of two above)
+    // Count of all points (sum of two above); less than or
+    // equal the count of *buffer* elements
     ElementCount const mAllPointCount;
 
+    // Parent world
     World & mParentWorld;
+
+    // Handler of game events
     std::shared_ptr<GameEventDispatcher> const mGameEventHandler;
 
     // The handler registered for point detachments

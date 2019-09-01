@@ -496,6 +496,7 @@ public:
     void AddShip(
         ShipId shipId,
         size_t pointCount,
+        size_t pointBufferElementCount,
         RgbaImageData texture,
         ShipDefinition::TextureOriginType textureOrigin);
 
@@ -909,16 +910,11 @@ public:
 
     void UploadShipPointMutableAttributes(
         ShipId shipId,
-        vec2f const * position,
-        float const * light,
-        float const * water)
+        void const * pwlBuffer) // Positions, Water, Light
     {
         assert(shipId >= 0 && shipId < mShips.size());
 
-        mShips[shipId]->UploadPointMutableAttributes(
-            position,
-            light,
-            water);
+        mShips[shipId]->UploadPointMutableAttributes(pwlBuffer);
     }
 
     void UploadShipPointMutableAttributesPlaneId(

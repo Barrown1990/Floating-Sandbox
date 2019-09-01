@@ -47,6 +47,8 @@ public:
 
     size_t GetPointCount() const { return mPoints.GetElementCount(); }
 
+    size_t GetPointBufferElementCount() const { return mPoints.GetBufferElementCount(); }
+
     auto const & GetPoints() const { return mPoints; }
     auto & GetPoints() { return mPoints; }
 

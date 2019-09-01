@@ -1119,6 +1119,7 @@ void GameController::OnShipAdded(
     mRenderContext->AddShip(
         shipId,
         mWorld->GetShipPointCount(shipId),
+        mWorld->GetShipPointBufferElementCount(shipId),
         std::move(shipDefinition.TextureLayerImage),
         shipDefinition.TextureOrigin);
 

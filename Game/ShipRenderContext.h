@@ -38,6 +38,7 @@ public:
         ShipId shipId,
         size_t shipCount,
         size_t pointCount,
+        size_t pointBufferElementCount,
         RgbaImageData shipTexture,
         ShipDefinition::TextureOriginType textureOrigin,
         ShaderManager<ShaderManagerTraits> & shaderManager,
@@ -162,10 +163,7 @@ public:
 
     void UploadPointMutableAttributesStart();
 
-    void UploadPointMutableAttributes(
-        vec2f const * position,
-        float const * light,
-        float const * water);
+    void UploadPointMutableAttributes(void const * pwlBuffer); // Positions, Water, Light
 
     void UploadPointMutableAttributesPlaneId(
         float const * planeId,
@@ -600,6 +598,7 @@ private:
     ShipId const mShipId;
     size_t mShipCount;
     size_t const mPointCount;
+    size_t const mPointBufferElementCount;
     PlaneId mMaxMaxPlaneId;
 
 
@@ -701,11 +700,9 @@ private:
     // Buffers
     //
 
-    std::unique_ptr<vec4f> mPointAttributeGroup1Buffer; // Position, TextureCoordinates
-    GameOpenGLVBO mPointAttributeGroup1VBO;
+    GameOpenGLVBO mPointTcDPVBO; // Texture coordinates, Decay, PlaneId
 
-    std::unique_ptr<vec4f> mPointAttributeGroup2Buffer; // Light, Water, PlaneId, Decay
-    GameOpenGLVBO mPointAttributeGroup2VBO;
+    GameOpenGLVBO mPointPWLVBO; // Poisitions, Water, Light
 
     GameOpenGLVBO mPointColorVBO;
 

@@ -647,6 +647,7 @@ void RenderContext::ValidateShip(
 void RenderContext::AddShip(
     ShipId shipId,
     size_t pointCount,
+    size_t pointBufferElementCount,
     RgbaImageData texture,
     ShipDefinition::TextureOriginType textureOrigin)
 {
@@ -666,6 +667,7 @@ void RenderContext::AddShip(
             shipId,
             newShipCount,
             pointCount,
+            pointBufferElementCount,
             std::move(texture),
             textureOrigin,
             *mShaderManager,

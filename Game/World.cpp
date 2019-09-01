@@ -67,6 +67,13 @@ size_t World::GetShipPointCount(ShipId shipId) const
     return mAllShips[shipId]->GetPointCount();
 }
 
+size_t World::GetShipPointBufferElementCount(ShipId shipId) const
+{
+    assert(shipId >= 0 && shipId < mAllShips.size());
+
+    return mAllShips[shipId]->GetPointBufferElementCount();
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Interactions
 //////////////////////////////////////////////////////////////////////////////

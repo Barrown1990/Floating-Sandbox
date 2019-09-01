@@ -309,12 +309,20 @@ VertexAttributeType StrToVertexAttributeType(std::string const & str)
     else if (Utils::CaseInsensitiveEquals(str, "WorldBorder"))
         return VertexAttributeType::WorldBorder;
     // Ship
-    else if (Utils::CaseInsensitiveEquals(str, "ShipPointAttributeGroup1"))
-        return VertexAttributeType::ShipPointAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "ShipPointAttributeGroup2"))
-        return VertexAttributeType::ShipPointAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointTextureCoordinates"))
+        return VertexAttributeType::ShipPointTextureCoordinates;
     else if (Utils::CaseInsensitiveEquals(str, "ShipPointColor"))
         return VertexAttributeType::ShipPointColor;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointPosition"))
+        return VertexAttributeType::ShipPointPosition;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointWater"))
+        return VertexAttributeType::ShipPointWater;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointLight"))
+        return VertexAttributeType::ShipPointLight;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointPlaneId"))
+        return VertexAttributeType::ShipPointPlaneId;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipPointDecay"))
+        return VertexAttributeType::ShipPointDecay;
     else if (Utils::CaseInsensitiveEquals(str, "ShipPointTemperature"))
         return VertexAttributeType::ShipPointTemperature;
     else if (Utils::CaseInsensitiveEquals(str, "GenericTexture1"))
