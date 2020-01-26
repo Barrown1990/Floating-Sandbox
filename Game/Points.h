@@ -776,6 +776,14 @@ public:
         return reinterpret_cast<float *>(mPositionBuffer.data());
     }
 
+    std::shared_ptr<Buffer<vec2f>> MakePositionBufferCopy()
+    {
+        auto positionBufferCopy = mVec2fBufferAllocator.Allocate();
+        positionBufferCopy->copy_from(mPositionBuffer);
+
+        return positionBufferCopy;
+    }
+
     vec2f const & GetVelocity(ElementIndex pointElementIndex) const noexcept
     {
         return mVelocityBuffer[pointElementIndex];
@@ -801,6 +809,25 @@ public:
         vec2f const & velocity) noexcept
     {
         mVelocityBuffer[pointElementIndex] = velocity;
+    }
+
+    /*
+     * Adds the velocities gained beetween a previous position snapshot and the current
+     * positions to the velocity buffer.
+     */
+    void UpdateVelocitiesFromPositionDeltas(
+        std::shared_ptr<Buffer<vec2f>> const & previousPositions,
+        float dt)
+    {
+        vec2f const * const restrict previousPositionsBuffer = previousPositions->data();
+        vec2f const * const restrict currentPositionsBuffer = mPositionBuffer.data();
+        vec2f * const restrict velocityBuffer = mVelocityBuffer.data();
+        for (ElementIndex p = 0; p < mBufferElementCount; ++p)
+        {
+            velocityBuffer[p] +=
+                (currentPositionsBuffer[p] - previousPositionsBuffer[p])
+                / dt;
+        }
     }
 
     vec2f const & GetForce(ElementIndex pointElementIndex) const noexcept
@@ -892,6 +919,11 @@ public:
      * Only valid after a call to UpdateMasses() and when
      * neither water quantities nor masses have changed since then.
      */
+    vec2f GetIntegrationFactor(ElementIndex pointElementIndex) const
+    {
+        return mIntegrationFactorBuffer[pointElementIndex];
+    }
+
     float * restrict GetIntegrationFactorBufferAsFloat()
     {
         return reinterpret_cast<float *>(mIntegrationFactorBuffer.data());
@@ -906,7 +938,6 @@ public:
 
         // Recalc integration factor time coefficient, freezing point
         mIntegrationFactorTimeCoefficientBuffer[pointElementIndex] = CalculateIntegrationFactorTimeCoefficient(
-            mCurrentNumMechanicalDynamicsIterations,
             mFrozenCoefficientBuffer[pointElementIndex]);
 
         // Also zero-out velocity, wiping all traces of this point moving
@@ -921,7 +952,6 @@ public:
 
         // Re-populate its integration factor time coefficient, thawing point
         mIntegrationFactorTimeCoefficientBuffer[pointElementIndex] = CalculateIntegrationFactorTimeCoefficient(
-            mCurrentNumMechanicalDynamicsIterations,
             mFrozenCoefficientBuffer[pointElementIndex]);
     }
 
@@ -1433,11 +1463,10 @@ public:
 private:
 
     static inline float CalculateIntegrationFactorTimeCoefficient(
-        float numMechanicalDynamicsIterations,
         float frozenCoefficient)
     {
-        return GameParameters::MechanicalSimulationStepTimeDuration<float>(numMechanicalDynamicsIterations)
-            * GameParameters::MechanicalSimulationStepTimeDuration<float>(numMechanicalDynamicsIterations)
+        return GameParameters::SimulationStepTimeDuration<float>
+            * GameParameters::SimulationStepTimeDuration<float>
             * frozenCoefficient;
     }
 

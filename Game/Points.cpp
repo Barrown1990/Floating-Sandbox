@@ -39,7 +39,7 @@ void Points::Add(
     mMaterialBuoyancyVolumeFillBuffer.emplace_back(structuralMaterial.BuoyancyVolumeFill);
     mDecayBuffer.emplace_back(1.0f);
     mFrozenCoefficientBuffer.emplace_back(1.0f);
-    mIntegrationFactorTimeCoefficientBuffer.emplace_back(CalculateIntegrationFactorTimeCoefficient(mCurrentNumMechanicalDynamicsIterations, 1.0f));
+    mIntegrationFactorTimeCoefficientBuffer.emplace_back(CalculateIntegrationFactorTimeCoefficient(1.0f));
     mBuoyancyCoefficientsBuffer.emplace_back(CalculateBuoyancyCoefficients(
         structuralMaterial.BuoyancyVolumeFill,
         structuralMaterial.ThermalExpansionCoefficient));
@@ -136,7 +136,7 @@ void Points::CreateEphemeralParticleAirBubble(
     assert(mDecayBuffer[pointIndex] == 1.0f);
     //mDecayBuffer[pointIndex] = 1.0f;
     mFrozenCoefficientBuffer[pointIndex] = 1.0f;
-    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(mCurrentNumMechanicalDynamicsIterations, 1.0f);
+    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(1.0f);
     mBuoyancyCoefficientsBuffer[pointIndex] = CalculateBuoyancyCoefficients(
         airStructuralMaterial.BuoyancyVolumeFill,
         airStructuralMaterial.ThermalExpansionCoefficient);
@@ -208,7 +208,7 @@ void Points::CreateEphemeralParticleDebris(
     assert(mDecayBuffer[pointIndex] == 1.0f);
     //mDecayBuffer[pointIndex] = 1.0f;
     mFrozenCoefficientBuffer[pointIndex] = 1.0f;
-    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(mCurrentNumMechanicalDynamicsIterations, 1.0f);
+    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(1.0f);
     mBuoyancyCoefficientsBuffer[pointIndex] = BuoyancyCoefficients(0.0f, 0.0f); // No buoyancy
     mMaterialsBuffer[pointIndex] = Materials(&structuralMaterial, nullptr);
 
@@ -289,7 +289,7 @@ void Points::CreateEphemeralParticleSmoke(
     assert(mDecayBuffer[pointIndex] == 1.0f);
     //mDecayBuffer[pointIndex] = 1.0f;
     mFrozenCoefficientBuffer[pointIndex] = 1.0f;
-    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(mCurrentNumMechanicalDynamicsIterations, 1.0f);
+    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(1.0f);
     mBuoyancyCoefficientsBuffer[pointIndex] = CalculateBuoyancyCoefficients(
         1.0f, // Need to counteract the artificially low buoyancy volume fill of air for air bubbles
         airStructuralMaterial.ThermalExpansionCoefficient);
@@ -362,7 +362,7 @@ void Points::CreateEphemeralParticleSparkle(
     assert(mDecayBuffer[pointIndex] == 1.0f);
     //mDecayBuffer[pointIndex] = 1.0f;
     mFrozenCoefficientBuffer[pointIndex] = 1.0f;
-    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(mCurrentNumMechanicalDynamicsIterations, 1.0f);
+    mIntegrationFactorTimeCoefficientBuffer[pointIndex] = CalculateIntegrationFactorTimeCoefficient(1.0f);
     mBuoyancyCoefficientsBuffer[pointIndex] = BuoyancyCoefficients(0.0f, 0.0f); // No buoyancy
     mMaterialsBuffer[pointIndex] = Materials(&structuralMaterial, nullptr);
 
@@ -514,7 +514,6 @@ void Points::UpdateForGameParameters(GameParameters const & gameParameters)
         for (ElementIndex i : *this)
         {
             mIntegrationFactorTimeCoefficientBuffer[i] = CalculateIntegrationFactorTimeCoefficient(
-                numMechanicalDynamicsIterations,
                 mFrozenCoefficientBuffer[i]);
         }
 

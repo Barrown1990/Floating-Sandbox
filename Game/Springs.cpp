@@ -372,7 +372,7 @@ void Springs::UpdateForDecayAndTemperatureAndGameParameters(
 
 void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
     ElementIndex springIndex,
-    float numMechanicalDynamicsIterations,
+    float /*numMechanicalDynamicsIterations*/,
     float stiffnessAdjustment,
     float dampingAdjustment,
     float strengthAdjustment,
@@ -385,8 +385,6 @@ void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
     float const massFactor =
         (points.GetAugmentedMaterialMass(endpointAIndex) * points.GetAugmentedMaterialMass(endpointBIndex))
         / (points.GetAugmentedMaterialMass(endpointAIndex) + points.GetAugmentedMaterialMass(endpointBIndex));
-
-    float const dt = GameParameters::SimulationStepTimeDuration<float> / numMechanicalDynamicsIterations;
 
     float const springTemperature =
         (points.GetTemperature(endpointAIndex) + points.GetTemperature(endpointBIndex)) / 2.0f;
@@ -434,7 +432,7 @@ void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
         * GetMaterialStiffness(springIndex)
         * stiffnessAdjustment
         * massFactor
-        / (dt * dt)
+        / (GameParameters::SimulationStepTimeDuration<float> * GameParameters::SimulationStepTimeDuration<float>)
         * meltMultiplier;
 
     // If the coefficient is growing (spring is becoming more stiff), then
@@ -462,7 +460,7 @@ void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
         GameParameters::SpringDampingCoefficient
         * dampingAdjustment
         * massFactor
-        / dt;
+        / GameParameters::SimulationStepTimeDuration<float>;
 
 
     //

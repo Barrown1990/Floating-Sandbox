@@ -214,11 +214,16 @@ public:
         GameParameters const & gameParameters,
         Render::RenderContext const & renderContext);
 
-    void UpdatePointForces(GameParameters const & gameParameters);
+    // TODO: NUKE
+    //void UpdateSpringForces(GameParameters const & gameParameters);
 
-    void UpdateSpringForces(GameParameters const & gameParameters);
+    void RelaxSprings(GameParameters const & gameParameters);
 
-    void IntegrateAndResetPointForces(GameParameters const & gameParameters);
+    void ApplyPointForces(GameParameters const & gameParameters);
+
+    void ApplySpringDamperForces(GameParameters const & gameParameters);
+
+    void IntegrateAndResetForces(GameParameters const & gameParameters);
 
     void HandleCollisionsWithSeaFloor(GameParameters const & gameParameters);
 

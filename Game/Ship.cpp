@@ -147,6 +147,7 @@ void Ship::Update(
 
     if (mCurrentSimulationSequenceNumber.IsStepOf(SpringDecayAndTemperaturePeriodStep, LowFrequencyPeriod))
     {
+        // Parameter check, decay, and temperature
         mSprings.UpdateForDecayAndTemperatureAndGameParameters(
             gameParameters,
             mPoints);
@@ -221,13 +222,15 @@ void Ship::Update(
     // (which would flag our structure as dirty)
     //
 
-    mSprings.UpdateForStrains(
-        gameParameters,
-        mPoints);
+    // TODOTEST
+    ////mSprings.UpdateForStrains(
+    ////    gameParameters,
+    ////    mPoints);
 
 
     //
     // Update water dynamics - may generate ephemeral particles
+    // (air bubbles)
     //
 
     UpdateWaterDynamics(
@@ -458,11 +461,80 @@ void Ship::UpdateMechanicalDynamics(
     Render::RenderContext const & renderContext)
 {
     //
-    // 1. Recalculate current masses and everything else that derives from them, once and for all
+    // Recalculate current masses and everything else that derives from them, once and for all
     //
 
     mPoints.UpdateMasses(gameParameters);
 
+    //
+    // Apply forces:
+    //  - Force fields (if any)
+    //  - Point forces
+    //
+
+    // Apply force fields (if any)
+    for (auto const & forceField : mCurrentForceFields)
+    {
+        forceField->Apply(
+            mPoints,
+            currentSimulationTime,
+            gameParameters);
+    }
+
+    // Consume force fields
+    mCurrentForceFields.clear();
+
+    // Apply point forces
+    ApplyPointForces(gameParameters);
+
+    //
+    // Integrate forces
+    //  - Zero out forces afterwards
+    //
+
+    // Check whether we need to save the last force buffer before we zero it out
+    if (VectorFieldRenderMode::PointForce == renderContext.GetVectorFieldRenderMode())
+    {
+        mPoints.CopyForceBufferToForceRenderBuffer();
+    }
+
+    // Integrate and reset forces to zero
+    IntegrateAndResetForces(gameParameters);
+
+
+    //
+    // Relax springs
+    //  - Changes positions and velocities
+    //
+
+    // Get snapshot of current positions
+    auto const startingPositions = mPoints.MakePositionBufferCopy();
+
+    // Run relaxation iterations
+    int const numMechanicalDynamicsIterations = gameParameters.NumMechanicalDynamicsIterations<int>();
+    for (int iter = 0; iter < numMechanicalDynamicsIterations; ++iter)
+    {
+        RelaxSprings(gameParameters);
+    }
+
+    // Update velocities with the position deltas
+    mPoints.UpdateVelocitiesFromPositionDeltas(startingPositions, GameParameters::SimulationStepTimeDuration<float>);
+
+    // Apply spring damper forces (will reduce velocities along springs at next iteration)
+    ApplySpringDamperForces(gameParameters);
+
+
+    //
+    // Handle collisions with sea floor
+    //
+
+    // Handle collisions with sea floor
+    HandleCollisionsWithSeaFloor(gameParameters);
+
+
+
+    // TODOOLD
+    /*
     //
     // 2. Run iterations
     //
@@ -502,9 +574,102 @@ void Ship::UpdateMechanicalDynamics(
 
     // Consume force fields
     mCurrentForceFields.clear();
+    */
 }
 
-void Ship::UpdatePointForces(GameParameters const & gameParameters)
+void Ship::RelaxSprings(GameParameters const & gameParameters)
+{
+    for (auto springIndex : mSprings)
+    {
+        auto const pointAIndex = mSprings.GetEndpointAIndex(springIndex);
+        auto const pointBIndex = mSprings.GetEndpointBIndex(springIndex);
+
+        // No need to check whether the spring is deleted, as a deleted spring
+        // has zero coefficients
+
+        vec2f const displacement = mPoints.GetPosition(pointBIndex) - mPoints.GetPosition(pointAIndex);
+        float const displacementLength = displacement.length();
+        vec2f const springDir = displacement.normalise(displacementLength);
+
+        //
+        // TODOTEST
+        //
+
+        float const massFactor =
+            (mPoints.GetAugmentedMaterialMass(pointAIndex) * mPoints.GetAugmentedMaterialMass(pointBIndex))
+            / (mPoints.GetAugmentedMaterialMass(pointAIndex) + mPoints.GetAugmentedMaterialMass(pointBIndex));
+
+        float const desiredStiffnessCoefficient =
+            GameParameters::SpringReductionFraction * 2.0f // See if param is still needed
+            * mSprings.GetMaterialStiffness(springIndex)
+            * gameParameters.SpringStiffnessAdjustment
+            * massFactor;
+
+        // Calculate spring force on point A
+        vec2f const fSpringA =
+            springDir
+            * (displacementLength - mSprings.GetRestLength(springIndex))
+            * desiredStiffnessCoefficient;
+
+        // Adjust positions based on force
+        mPoints.GetPosition(pointAIndex) +=
+            fSpringA
+            / mPoints.GetMass(pointAIndex);
+        mPoints.GetPosition(pointBIndex) +=
+            -fSpringA
+            / mPoints.GetMass(pointBIndex);
+    }
+
+    /*TODOOLD
+    for (auto springIndex : mSprings)
+    {
+        auto const pointAIndex = mSprings.GetEndpointAIndex(springIndex);
+        auto const pointBIndex = mSprings.GetEndpointBIndex(springIndex);
+
+        // No need to check whether the spring is deleted, as a deleted spring
+        // has zero coefficients
+
+        vec2f const displacement = mPoints.GetPosition(pointBIndex) - mPoints.GetPosition(pointAIndex);
+        float const displacementLength = displacement.length();
+        vec2f const springDir = displacement.normalise(displacementLength);
+
+        //
+        // 1. Hooke's law
+        //
+
+        // Calculate spring force on point A
+        vec2f const fSpringA =
+            springDir
+            * (displacementLength - mSprings.GetRestLength(springIndex))
+            * mSprings.GetStiffnessCoefficient(springIndex);
+
+
+        //
+        // 2. Damper forces
+        //
+        // Damp the velocities of the two points, as if the points were also connected by a damper
+        // along the same direction as the spring
+        //
+
+        // Calculate damp force on point A
+        vec2f const relVelocity = mPoints.GetVelocity(pointBIndex) - mPoints.GetVelocity(pointAIndex);
+        vec2f const fDampA =
+            springDir
+            * relVelocity.dot(springDir)
+            * mSprings.GetDampingCoefficient(springIndex);
+
+
+        //
+        // Apply forces
+        //
+
+        mPoints.GetForce(pointAIndex) += fSpringA + fDampA;
+        mPoints.GetForce(pointBIndex) -= fSpringA + fDampA;
+    }
+    */
+}
+
+void Ship::ApplyPointForces(GameParameters const & gameParameters)
 {
     // Density of air, adjusted for temperature
     float const effectiveAirDensity =
@@ -617,7 +782,7 @@ void Ship::UpdatePointForces(GameParameters const & gameParameters)
     }
 }
 
-void Ship::UpdateSpringForces(GameParameters const & /*gameParameters*/)
+void Ship::ApplySpringDamperForces(GameParameters const & /*gameParameters*/)
 {
     for (auto springIndex : mSprings)
     {
@@ -628,22 +793,8 @@ void Ship::UpdateSpringForces(GameParameters const & /*gameParameters*/)
         // has zero coefficients
 
         vec2f const displacement = mPoints.GetPosition(pointBIndex) - mPoints.GetPosition(pointAIndex);
-        float const displacementLength = displacement.length();
-        vec2f const springDir = displacement.normalise(displacementLength);
+        vec2f const springDir = displacement.normalise();
 
-        //
-        // 1. Hooke's law
-        //
-
-        // Calculate spring force on point A
-        vec2f const fSpringA =
-            springDir
-            * (displacementLength - mSprings.GetRestLength(springIndex))
-            * mSprings.GetStiffnessCoefficient(springIndex);
-
-
-        //
-        // 2. Damper forces
         //
         // Damp the velocities of the two points, as if the points were also connected by a damper
         // along the same direction as the spring
@@ -661,15 +812,14 @@ void Ship::UpdateSpringForces(GameParameters const & /*gameParameters*/)
         // Apply forces
         //
 
-        mPoints.GetForce(pointAIndex) += fSpringA + fDampA;
-        mPoints.GetForce(pointBIndex) -= fSpringA + fDampA;
+        mPoints.GetForce(pointAIndex) += fDampA;
+        mPoints.GetForce(pointBIndex) -= fDampA;
     }
 }
 
-void Ship::IntegrateAndResetPointForces(GameParameters const & gameParameters)
+void Ship::IntegrateAndResetForces(GameParameters const & /*gameParameters*/)
 {
-    float const dt = gameParameters.MechanicalSimulationStepTimeDuration<float>();
-
+    /* TODOOLD
     // Global damp - lowers velocity uniformly, damping oscillations originating between gravity and buoyancy
     //
     // Considering that:
@@ -689,6 +839,7 @@ void Ship::IntegrateAndResetPointForces(GameParameters const & gameParameters)
     float const globalDampCoefficient = pow(
         GameParameters::GlobalDamp,
         12.0f / gameParameters.NumMechanicalDynamicsIterations<float>());
+    */
 
     //
     // Take the four buffers that we need as restrict pointers, so that the compiler
@@ -710,16 +861,18 @@ void Ship::IntegrateAndResetPointForces(GameParameters const & gameParameters)
         // Verlet integration (fourth order, with velocity being first order)
         //
 
-        float const deltaPos = velocityBuffer[i] * dt + forceBuffer[i] * integrationFactorBuffer[i];
+        float const deltaPos =
+            velocityBuffer[i] * GameParameters::SimulationStepTimeDuration<float>
+            + forceBuffer[i] * integrationFactorBuffer[i];
         positionBuffer[i] += deltaPos;
-        velocityBuffer[i] = deltaPos * globalDampCoefficient / dt;
+        velocityBuffer[i] = deltaPos * GameParameters::GlobalDamp / GameParameters::SimulationStepTimeDuration<float>;
 
         // Zero out force now that we've integrated it
         forceBuffer[i] = 0.0f;
     }
 }
 
-void Ship::HandleCollisionsWithSeaFloor(GameParameters const & gameParameters)
+void Ship::HandleCollisionsWithSeaFloor(GameParameters const & /*gameParameters*/)
 {
     //
     // We handle collisions really simplistically: we move back points to where they were
@@ -742,8 +895,6 @@ void Ship::HandleCollisionsWithSeaFloor(GameParameters const & gameParameters)
     // The fraction of velocity that bounces back (we model inelastic bounces)
     static constexpr float VelocityBounceFraction = -0.75f;
 
-    float const dt = gameParameters.MechanicalSimulationStepTimeDuration<float>();
-
     for (auto pointIndex : mPoints)
     {
         // Check if point is now below the sea floor
@@ -751,7 +902,9 @@ void Ship::HandleCollisionsWithSeaFloor(GameParameters const & gameParameters)
         if (mPoints.GetPosition(pointIndex).y < floorheight)
         {
             // Move point back to where it was
-            mPoints.GetPosition(pointIndex) -= mPoints.GetVelocity(pointIndex) * dt;
+            mPoints.GetPosition(pointIndex) -=
+                mPoints.GetVelocity(pointIndex)
+                * GameParameters::SimulationStepTimeDuration<float>;
 
             //
             // Calculate new velocity
