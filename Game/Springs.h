@@ -90,13 +90,16 @@ private:
      */
     struct Coefficients
     {
-        float StiffnessCoefficient;
+        float StiffnessCoefficientA;
+        float StiffnessCoefficientB;
         float DampingCoefficient;
 
         Coefficients(
-            float stiffnessCoefficient,
+            float stiffnessCoefficientA,
+            float stiffnessCoefficientB,
             float dampingCoefficient)
-            : StiffnessCoefficient(stiffnessCoefficient)
+            : StiffnessCoefficientA(stiffnessCoefficientA)
+            , StiffnessCoefficientB(stiffnessCoefficientB)
             , DampingCoefficient(dampingCoefficient)
         {}
     };
@@ -126,7 +129,7 @@ public:
         , mMaterialStiffnessBuffer(mBufferElementCount, mElementCount, 0.0f)
         , mFactoryRestLengthBuffer(mBufferElementCount, mElementCount, 1.0f)
         , mRestLengthBuffer(mBufferElementCount, mElementCount, 1.0f)
-        , mCoefficientsBuffer(mBufferElementCount, mElementCount, Coefficients(0.0f, 0.0f))
+        , mCoefficientsBuffer(mBufferElementCount, mElementCount, Coefficients(0.0f, 0.0f, 0.0f))
         , mMaterialCharacteristicsBuffer(mBufferElementCount, mElementCount, Characteristics::None)
         , mBaseStructuralMaterialBuffer(mBufferElementCount, mElementCount, nullptr)
         // Water
@@ -453,9 +456,14 @@ public:
         mRestLengthBuffer[springElementIndex] = restLength;
     }
 
-    float GetStiffnessCoefficient(ElementIndex springElementIndex) const noexcept
+    float GetStiffnessCoefficientA(ElementIndex springElementIndex) const noexcept
     {
-        return mCoefficientsBuffer[springElementIndex].StiffnessCoefficient;
+        return mCoefficientsBuffer[springElementIndex].StiffnessCoefficientA;
+    }
+
+    float GetStiffnessCoefficientB(ElementIndex springElementIndex) const noexcept
+    {
+        return mCoefficientsBuffer[springElementIndex].StiffnessCoefficientB;
     }
 
     float GetDampingCoefficient(ElementIndex springElementIndex) const noexcept

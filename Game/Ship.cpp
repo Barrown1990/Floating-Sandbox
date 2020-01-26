@@ -222,10 +222,9 @@ void Ship::Update(
     // (which would flag our structure as dirty)
     //
 
-    // TODOTEST
-    ////mSprings.UpdateForStrains(
-    ////    gameParameters,
-    ////    mPoints);
+    mSprings.UpdateForStrains(
+        gameParameters,
+        mPoints);
 
 
     //
@@ -577,7 +576,7 @@ void Ship::UpdateMechanicalDynamics(
     */
 }
 
-void Ship::RelaxSprings(GameParameters const & gameParameters)
+void Ship::RelaxSprings(GameParameters const & /*gameParameters*/)
 {
     for (auto springIndex : mSprings)
     {
@@ -591,33 +590,18 @@ void Ship::RelaxSprings(GameParameters const & gameParameters)
         float const displacementLength = displacement.length();
         vec2f const springDir = displacement.normalise(displacementLength);
 
-        //
-        // TODOTEST
-        //
-
-        float const massFactor =
-            (mPoints.GetAugmentedMaterialMass(pointAIndex) * mPoints.GetAugmentedMaterialMass(pointBIndex))
-            / (mPoints.GetAugmentedMaterialMass(pointAIndex) + mPoints.GetAugmentedMaterialMass(pointBIndex));
-
-        float const desiredStiffnessCoefficient =
-            GameParameters::SpringReductionFraction * 2.0f // See if param is still needed
-            * mSprings.GetMaterialStiffness(springIndex)
-            * gameParameters.SpringStiffnessAdjustment
-            * massFactor;
-
-        // Calculate spring force on point A
+        // Calculate spring pseudo-force on point A
         vec2f const fSpringA =
             springDir
-            * (displacementLength - mSprings.GetRestLength(springIndex))
-            * desiredStiffnessCoefficient;
+            * (displacementLength - mSprings.GetRestLength(springIndex));
 
         // Adjust positions based on force
         mPoints.GetPosition(pointAIndex) +=
             fSpringA
-            / mPoints.GetMass(pointAIndex);
+            * mSprings.GetStiffnessCoefficientA(springIndex);
         mPoints.GetPosition(pointBIndex) +=
             -fSpringA
-            / mPoints.GetMass(pointBIndex);
+            * mSprings.GetStiffnessCoefficientB(springIndex);
     }
 
     /*TODOOLD

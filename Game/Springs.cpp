@@ -48,7 +48,7 @@ void Springs::Add(
     mRestLengthBuffer.emplace_back((points.GetPosition(pointAIndex) - points.GetPosition(pointBIndex)).length());
 
     // Coefficients recalculated later, but stiffness grows slowly and shrinks fast, hence we want to start high
-    mCoefficientsBuffer.emplace_back(std::numeric_limits<float>::max(), 0.0f);
+    mCoefficientsBuffer.emplace_back(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0.0f);
 
     mMaterialCharacteristicsBuffer.emplace_back(characteristics);
 
@@ -117,7 +117,8 @@ void Springs::Destroy(
     // Zero out our coefficients, so that we can still calculate Hooke's
     // and damping forces for this spring without running the risk of
     // affecting non-deleted points
-    mCoefficientsBuffer[springElementIndex].StiffnessCoefficient = 0.0f;
+    mCoefficientsBuffer[springElementIndex].StiffnessCoefficientA = 0.0f;
+    mCoefficientsBuffer[springElementIndex].StiffnessCoefficientB = 0.0f;
     mCoefficientsBuffer[springElementIndex].DampingCoefficient = 0.0f;
 
     // Flag ourselves as deleted
@@ -416,8 +417,6 @@ void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
     //
 
     // Asymptote
-    // NOTE: This value should be adjusted based on the number of spring iterations we perform
-    // per simulation step
     float constexpr MinStiffnessFraction = 0.0008f;
 
     // We reach max softness at T+100
@@ -432,21 +431,34 @@ void Springs::inline_UpdateForDecayAndTemperatureAndGameParameters(
         * GetMaterialStiffness(springIndex)
         * stiffnessAdjustment
         * massFactor
-        / (GameParameters::SimulationStepTimeDuration<float> * GameParameters::SimulationStepTimeDuration<float>)
         * meltMultiplier;
 
     // If the coefficient is growing (spring is becoming more stiff), then
     // approach the desired stiffness coefficient slowly,
     // or else we have too much discontinuity and might explode
-    if (desiredStiffnessCoefficient > mCoefficientsBuffer[springIndex].StiffnessCoefficient)
+
+    float const desiredStiffnessCoefficientA = desiredStiffnessCoefficient / points.GetAugmentedMaterialMass(endpointAIndex);
+    if (desiredStiffnessCoefficientA > mCoefficientsBuffer[springIndex].StiffnessCoefficientA)
     {
-        mCoefficientsBuffer[springIndex].StiffnessCoefficient +=
+        mCoefficientsBuffer[springIndex].StiffnessCoefficientA +=
             0.05f // 0.05: ~43 steps to 1/10th off target
-            * (desiredStiffnessCoefficient - mCoefficientsBuffer[springIndex].StiffnessCoefficient);
+            * (desiredStiffnessCoefficientA - mCoefficientsBuffer[springIndex].StiffnessCoefficientA);
     }
     else
     {
-        mCoefficientsBuffer[springIndex].StiffnessCoefficient = desiredStiffnessCoefficient;
+        mCoefficientsBuffer[springIndex].StiffnessCoefficientA = desiredStiffnessCoefficientA;
+    }
+
+    float const desiredStiffnessCoefficientB = desiredStiffnessCoefficient / points.GetAugmentedMaterialMass(endpointBIndex);
+    if (desiredStiffnessCoefficientB > mCoefficientsBuffer[springIndex].StiffnessCoefficientB)
+    {
+        mCoefficientsBuffer[springIndex].StiffnessCoefficientB +=
+            0.05f // 0.05: ~43 steps to 1/10th off target
+            * (desiredStiffnessCoefficientB - mCoefficientsBuffer[springIndex].StiffnessCoefficientB);
+    }
+    else
+    {
+        mCoefficientsBuffer[springIndex].StiffnessCoefficientB = desiredStiffnessCoefficientB;
     }
 
 

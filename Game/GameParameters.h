@@ -39,14 +39,6 @@ struct GameParameters
 
 
     //
-    // The low-frequency update dt
-    //
-
-    template <typename T>
-    static constexpr T LowFrequencySimulationStepTimeDuration = 1.0f;
-
-
-    //
     // Physical Constants
     //
 
@@ -74,7 +66,7 @@ struct GameParameters
 
     // Fraction of a spring displacement that is removed during a spring relaxation
     // iteration. The remaining spring displacement is (1.0 - this fraction).
-    static float constexpr SpringReductionFraction = 0.4f;
+    static float constexpr SpringReductionFraction = 0.8f;
 
     // The empirically-determined constant for the spring damping.
     // The simulation is quite sensitive to this value:
@@ -112,7 +104,7 @@ struct GameParameters
     static float constexpr MinSpringStrengthAdjustment = 0.01f;
     static float constexpr MaxSpringStrengthAdjustment = 50.0f;
 
-    static float constexpr GlobalDamp = 0.9996f; // // We've shipped 1.7.5 with 0.9997, but splinter springs used to dance for too long
+    static float constexpr GlobalDamp = 0.9956f;
 
     float RotAcceler8r;
     static float constexpr MinRotAcceler8r = 0.0f;
