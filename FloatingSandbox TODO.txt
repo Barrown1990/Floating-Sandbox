@@ -476,6 +476,7 @@ Render:
 		- Baked sounds
 
 		- Also GoodYear should be full of hydrogen
+		- Lower thermal expansion of cardboard, so it flies up less
 		- Lower gunpowder strength
 		- Selector for panel background
 		- Check Mike's materials
@@ -727,7 +728,7 @@ Render:
 			- If UpdateMechanicalDynamics ends up using PointForces as it is at the beginning of the loop, then
 			  might get rid of force fields
 
-	- Try with SpringRelaxation updating only positions (*)
+	= Try with SpringRelaxation updating only positions (*)
 		- Still runs N times, but only updates positions (does a local "integration" based on "forces")
 		- After last step, update velocity adding last step's position minus initial position
 			- Need to save velocity buffer first
